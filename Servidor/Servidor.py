@@ -3,13 +3,14 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
-from Servidor.Buscador import Buscador
+from Buscador import Buscador
 
 # URL base
 
 MSG_ERROR="Se ha producido un error"
 URLS_FILE="Urls.txt"
-BASE_URL = "http://f4spain-e3.alkamelsystems.com/"
+SEASON_URL="?Season="
+EVENT_URL="&evvent="
 OUTPUT_FOLDER = "csv_files"
 
 
@@ -22,7 +23,7 @@ def obtenerUrls():
     urlsFile=open(URLS_FILE, "r")
     urls=[]
     for line in urlsFile:
-        urls.append(line)
+        urls.append(line.strip())
     return urls
 
 
@@ -36,17 +37,14 @@ def obtenerTemporadas(url):
        # Buscar la etiqueta <select name="season">
        select_tag = soup.find("select", {"name": "season"})
        if not select_tag:
-           print("⚠️ No se encontraron temporadas en el HTML.")
            return []
 
 
        # Extraer todas las opciones del select
        seasons = [option["value"] for option in select_tag.find_all("option") if "value" in option.attrs]
-       print(f"✅ Temporadas encontradas: {seasons}")
        return seasons
    except requests.RequestException as e:
-       print(f"❌ Error al obtener temporadas: {e}")
-       return []
+       raise Exception(e)
 
 
 
@@ -62,17 +60,14 @@ def obtenerEventos(url):
        # Buscar la etiqueta <select name="season">
        select_tag = soup.find("select", {"name": "evvent"})
        if not select_tag:
-           print("⚠️ No se encontraron temporadas en el HTML.")
            return []
 
 
        # Extraer todas las opciones del select
        seasons = [option["value"] for option in select_tag.find_all("option") if "value" in option.attrs]
-       print(f"✅ Temporadas encontradas: {seasons}")
        return seasons
    except requests.RequestException as e:
-       print(f"❌ Error al obtener temporadas: {e}")
-       return []
+       raise Exception(e)
 
 
 
@@ -89,14 +84,14 @@ def main():
         if not seasons:
            continue
         for season in seasons:
-            url+="?season=" + season
+            url+=SEASON_URL + season
             events = obtenerEventos(url)
             if not events:
                 continue
 
 
             for event in events:
-                url+="&evvent="+event
+                url+=EVENT_URL+event
                 buscador=Buscador(url)
                 buscador.obtenerCsvs()
 

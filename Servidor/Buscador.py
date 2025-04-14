@@ -1,3 +1,7 @@
+import pandas as pd
+from pyhive import hive
+from io import StringIO
+import thrift
 import os
 import requests
 import self
@@ -7,6 +11,9 @@ from urllib.parse import urljoin, urlparse
 class Buscador:
     MSG_ERROR = "Se ha producido un error"
     OUTPUT_FOLDER="QUITAR"
+    HIVE_HOST="hive-server"
+    HIVE_PORT=10000
+    HIVE_DATABASE="AlkamelCsvs"
     def __init__(self, url):
         self.url=url
 
@@ -26,13 +33,29 @@ class Buscador:
             self.descargarCsv(csv_link)
 
     def descargarCsv(self, csvUrl):
-        filename = os.path.join(self.OUTPUT_FOLDER,
-                                self.url + os.path.basename(urlparse(csvUrl).path))
+        tableName = os.path.basename(urlparse(csvUrl).path)
         try:
             response = requests.get(csvUrl, stream=True)
             response.raise_for_status()
-            with open(filename, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+            dataFrame = pd.read_csv(StringIO(response.text))
+            conn = hive.Connection(host=self.HIVE_HOST, port=self.HIVE_PORT, database=self.HIVE_DATABASE)
+            cursor = conn.cursor()
+            columnas = ', '.join([f'{col} STRING' for col in dataFrame.columns])
+            cursor.execute(f"""
+                           CREATE TABLE IF NOT EXISTS {tableName} (
+                               {columnas}
+                           )
+                           ROW FORMAT DELIMITED
+                           FIELDS TERMINATED BY ','
+                           STORED AS TEXTFILE
+                       """)
+            tempFile = '/tmp/temp_hive_upload.csv'
+            dataFrame.to_csv(tempFile, index=False, header=False)
+            os.system(f"hdfs dfs -put -f {tempFile} /tmp/{os.path.basename(tempFile)}")
+            cursor.execute(f"""
+                           LOAD DATA INPATH '/tmp/{os.path.basename(tempFile)}'
+                           INTO TABLE {tableName}
+                       """)
+            print("CSV cargado exitosamente en Hive.")
         except requests.RequestException as e:
             raise Exception(e)
