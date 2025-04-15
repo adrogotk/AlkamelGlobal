@@ -10,8 +10,7 @@ from urllib.parse import urljoin, urlparse
 
 class Buscador:
     MSG_ERROR = "Se ha producido un error"
-    OUTPUT_FOLDER="QUITAR"
-    HIVE_HOST="hive-server"
+    HIVE_HOST="localhost"
     HIVE_PORT=10000
     HIVE_DATABASE="AlkamelCsvs"
     def __init__(self, url):
@@ -38,10 +37,13 @@ class Buscador:
             response = requests.get(csvUrl, stream=True)
             response.raise_for_status()
             dataFrame = pd.read_csv(StringIO(response.text))
-            conn = hive.Connection(host=self.HIVE_HOST, port=self.HIVE_PORT, database=self.HIVE_DATABASE)
+            conn = hive.Connection(host=self.HIVE_HOST,
+                                   port=self.HIVE_PORT
+                                   )
             cursor = conn.cursor()
             columnas = ', '.join([f'{col} STRING' for col in dataFrame.columns])
             cursor.execute(f"""
+                           CREATE DATABASE IF NOT EXISTS AlkamelCsvs;
                            CREATE TABLE IF NOT EXISTS {tableName} (
                                {columnas}
                            )
