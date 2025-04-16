@@ -8,6 +8,7 @@ import self
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 
+
 class Buscador:
     MSG_ERROR = "Se ha producido un error"
     HIVE_HOST="localhost"
@@ -38,7 +39,9 @@ class Buscador:
             response.raise_for_status()
             dataFrame = pd.read_csv(StringIO(response.text))
             conn = hive.Connection(host=self.HIVE_HOST,
-                                   port=self.HIVE_PORT
+                                   port=self.HIVE_PORT,
+                                   auth='NOSASL',
+                                   username='hive'
                                    )
             cursor = conn.cursor()
             columnas = ', '.join([f'{col} STRING' for col in dataFrame.columns])

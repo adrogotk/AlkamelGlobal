@@ -5,6 +5,7 @@ from urllib.parse import urljoin, urlparse
 
 from Buscador import Buscador
 
+
 # URL base
 
 MSG_ERROR="Se ha producido un error"
