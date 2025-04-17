@@ -56,7 +56,7 @@ class Buscador:
                        """)
             tempFile = '/tmp/temp_hive_upload.csv'
             dataFrame.to_csv(tempFile, index=False, header=False)
-            os.system(f"hdfs dfs -put -f {tempFile} /tmp/{os.path.basename(tempFile)}")
+            os.system(f"docker exec -i namenode hdfs dfs -put -f - /tmp/{os.path.basename(tempFile)} < {tempFile}")
             cursor.execute(f"""
                            LOAD DATA INPATH '/tmp/{os.path.basename(tempFile)}'
                            INTO TABLE {tableName}

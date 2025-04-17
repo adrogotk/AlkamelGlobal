@@ -1,110 +1,64 @@
-version: '3'
+# docker-compose.yml
+version: "3"
 
 services:
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
-    networks:
-      - my_network
-    command: bash -c "hdfs namenode -format -force && /entrypoint.sh /run.sh"
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     container_name: namenode
     environment:
       - CLUSTER_NAME=test
+    volumes:
+      - namenode:/hadoop/dfs/name
     ports:
       - "9870:9870"
-      - "9000:9000"
-    volumes:
-      - hadoop_namenode:/hadoop/dfs/name
+    networks:
+      - hive-net
 
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
-    networks:
-      - my_network
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
     container_name: datanode
     environment:
-      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
-    depends_on:
-      - namenode
-    ports:
-      - "9864:9864"
+      - CLUSTER_NAME=test
     volumes:
-      - hadoop_datanode:/hadoop/dfs/data
-
-  hive-metastore-postgresql:
-    image: postgres:12
+      - datanode:/hadoop/dfs/data
     networks:
-      - my_network
-    container_name: hive-metastore-postgres
-    environment:
-      - POSTGRES_DB=metastore
-      - POSTGRES_USER=hive
-      - POSTGRES_PASSWORD=hive
-    ports:
-      - "5432:5432"
+      - hive-net
 
   hive-metastore:
-    image: bde2020/hive:2.3.2-postgresql-metastore
-    networks:
-      - my_network
+    image: bde2020/hive-metastore-postgresql:2.3.0
     container_name: hive-metastore
     environment:
-      - HIVE_METASTORE_DB_TYPE=postgres
-      - HIVE_METASTORE_HOST=hive-metastore
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore-postgres:5432/metastore
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionDriverName=org.postgresql.Driver
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionUserName=hive
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionPassword=hive
-      - HIVE_SITE_CONF_hive_metastore_uris=thrift://hive-metastore:9083
-      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
-    ports:
-      - "9083:9083"
-    depends_on:
-      - hive-metastore-postgresql
-      - namenode
-      - datanode
+      - HIVE_DB=mydb
+      - HIVE_USER=hive
+      - HIVE_PASSWORD=hive
+    networks:
+      - hive-net
 
   hive-server:
     image: bde2020/hive:2.3.2-postgresql-metastore
-    networks:
-      - my_network
-    command:
-      - bash
-      - -c
-      - |
-        /opt/hive/bin/hiveserver2 --hiveconf hive.server2.authentication=NOSASL
     container_name: hive-server
     environment:
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore-postgres:5432/metastore
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionDriverName=org.postgresql.Driver
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionUserName=hive
-      - HIVE_CORE_CONF_javax_jdo_option_ConnectionPassword=hive
-      - HIVE_SITE_CONF_hive_metastore_uris=thrift://hive-metastore:9083
-      - HIVE_SITE_CONF_hive_server2_authentication=NOSASL
-      - SERVICE_NAME=hiveserver2
-      - CORE_CONF_fs_defaultFS=hdfs://namenode:9000
+      - HIVE_METASTORE_URI=thrift://hive-metastore:9083
     ports:
       - "10000:10000"
     depends_on:
       - hive-metastore
       - namenode
       - datanode
-
-  python-client:
-    image: python:3.11
-    container_name: python-client
     networks:
-      - my_network
-    volumes:
-      - ../app:/app
-    working_dir: /app
-    command: bash -c "pip install pyhive thrift; python -c 'from pyhive import hive; print(hive.connect(host=\"localhost\", port=10000, auth=\"NOSASL\").cursor().execute(\"SHOW DATABASES\"))'"
-    depends_on:
-      - hive-server
-      - namenode
-      - datanode
-volumes:
-  hadoop_namenode:
-  hadoop_datanode:
+      - hive-net
+
+  hive-client:
+    image: bde2020/hive:2.3.2-postgresql-metastore
+    container_name: hive-client
+    command: /bin/bash
+    tty: true
+    networks:
+      - hive-net
 
 networks:
-  my_network:
-    driver: bridge
+  hive-net:
+
+volumes:
+  namenode:
+  datanode:
