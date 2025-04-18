@@ -40,8 +40,7 @@ class Buscador:
             dataFrame = pd.read_csv(StringIO(response.text))
             conn = hive.Connection(host=self.HIVE_HOST,
                                    port=self.HIVE_PORT,
-                                   auth='NOSASL',
-                                   username='hive'
+                                   auth='NOSASL'
                                    )
             cursor = conn.cursor()
             columnas = ', '.join([f'{col} STRING' for col in dataFrame.columns])
