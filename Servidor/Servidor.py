@@ -10,7 +10,7 @@ from Buscador import Buscador
 
 MSG_ERROR="Se ha producido un error"
 URLS_FILE="Urls.txt"
-SEASON_URL="?Season="
+SEASON_URL="?season="
 EVENT_URL="&evvent="
 OUTPUT_FOLDER = "csv_files"
 
@@ -85,16 +85,16 @@ def main():
         if not seasons:
            continue
         for season in seasons:
-            url+=SEASON_URL + season
-            events = obtenerEventos(url)
+            url_season=url + SEASON_URL + season
+            events = obtenerEventos(url_season)
             if not events:
                 continue
 
 
             for event in events:
-                url+=EVENT_URL+event
-                buscador=Buscador(url)
-                buscador.obtenerCsvs()
+                url_event=url_season + EVENT_URL+event
+                buscador=Buscador(url_event)
+                buscador.obtenerCsvs(season, event)
 
 
 

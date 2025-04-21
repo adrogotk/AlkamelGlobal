@@ -1,66 +1,72 @@
-version: "3"
+version: '3'
 
 services:
   namenode:
-    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    image: bde2020/hadoop-namenode:2.0.0-hadoop2.7.4-java8
     container_name: namenode
+    ports:
+      - "50070:50070"
     environment:
       - CLUSTER_NAME=test
     volumes:
       - namenode:/hadoop/dfs/name
-    ports:
-      - "9870:9870"
-    networks:
-      - hive-net
+    env_file:
+      - ./hadoop.env
 
   datanode:
-    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    image: bde2020/hadoop-datanode:2.0.0-hadoop2.7.4-java8
     container_name: datanode
-    environment:
-      - CLUSTER_NAME=test
+    depends_on:
+      - namenode
+    ports:
+      - "50075:50075"
     volumes:
       - datanode:/hadoop/dfs/data
-    networks:
-      - hive-net
-
-  hive-metastore:
-    image: bde2020/hive-metastore-postgresql:2.3.0
-    container_name: hive-metastore
-    environment:
-      - HIVE_DB=metastore
-      - HIVE_USER=hive
-      - HIVE_PASSWORD=hive
-    ports:
-      - "9083:9083"
-    networks:
-      - hive-net
+    env_file:
+      - ./hadoop.env
 
   hive-server:
     image: bde2020/hive:2.3.2-postgresql-metastore
     container_name: hive-server
-    environment:
-      - HIVE_METASTORE_URI=thrift://hive-metastore:9083
-      - SERVICE_NAME=hiveserver2
-      - HIVE_SERVER2_THRIFT_BIND_HOST=0.0.0.0
-    ports:
-      - "10000:10000"
     depends_on:
-      - hive-metastore
       - namenode
       - datanode
-    networks:
-      - hive-net
+      - hive-metastore
+      - hive-metastore-postgresql
+    ports:
+      - "10000:10000"
+    env_file:
+      - ./hadoop.env
+    environment:
+      - HIVE_CORE_CONF_javax_jdo_option_ConnectionURL=jdbc:postgresql://hive-metastore-postgresql/metastore
+      - SERVICE_NAME=hiveserver2
+    volumes:
+      - ./hive-site.xml:/opt/hive/conf/hive-site.xml
 
-  hive-client:
+  hive-metastore:
     image: bde2020/hive:2.3.2-postgresql-metastore
-    container_name: hive-client
-    command: /bin/bash
-    tty: true
-    networks:
-      - hive-net
+    container_name: hive-metastore
+    depends_on:
+      - hive-metastore-postgresql
+    env_file:
+      - ./hadoop.env
+    environment:
+      - SERVICE_NAME=metastore
+    command: /opt/hive/bin/hive --service metastore
 
-networks:
-  hive-net:
+  hive-metastore-postgresql:
+    image: bde2020/hive-metastore-postgresql:2.3.0
+    container_name: hive-metastore-postgresql
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./hadoop.env
+
+  adminer:
+      image: adminer
+      container_name: adminer
+      ports:
+        - "8080:8080"
 
 volumes:
   namenode:

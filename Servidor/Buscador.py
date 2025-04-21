@@ -14,6 +14,13 @@ class Buscador:
     HIVE_HOST="localhost"
     HIVE_PORT=10000
     HIVE_DATABASE="AlkamelCsvs"
+    TIPOS = {
+        'object': 'STRING',
+        'int64': 'INT',
+        'float64': 'FLOAT',
+        'bool': 'BOOLEAN',
+        'datetime64[ns]': 'TIMESTAMP'
+    }
     def __init__(self, url):
         self.url=url
 
@@ -26,32 +33,53 @@ class Buscador:
         except requests.RequestException as e:
             raise Exception(e)
 
-    def obtenerCsvs(self):
+    def obtenerCsvs(self, season ,event):
         links = self.obtenerEnlaces()
-        csv_links = [link for link in links if link.endswith(".CSV")]
+        csv_links=[]
+        for link in links:
+            if (link.endswith(".CSV")):
+                csv_links.append(link)
         for csv_link in csv_links:
-            self.descargarCsv(csv_link)
+            print("pasa por obtener csvs")
+            self.descargarCsv(csv_link, season, event)
 
-    def descargarCsv(self, csvUrl):
-        tableName = os.path.basename(urlparse(csvUrl).path)
+    def descargarCsv(self, csvUrl, season, event):
+        tableName = os.path.basename(urlparse(csvUrl).path) + season + "_" + event +"_"
+        tableName=(tableName.replace("%20","_").replace(" ", "_")
+                   .replace(".CSV", "").replace("-","_"))
+        print(tableName)
         try:
             response = requests.get(csvUrl, stream=True)
             response.raise_for_status()
             dataFrame = pd.read_csv(StringIO(response.text))
+            #print(dataFrame)
             conn = hive.Connection(host=self.HIVE_HOST,
-                                   port=self.HIVE_PORT,
-                                   auth='NOSASL'
+                                   port=self.HIVE_PORT
+                                   # auth='NOSASL'
                                    )
             cursor = conn.cursor()
-            columnas = ', '.join([f'{col} STRING' for col in dataFrame.columns])
+            cursor.execute("CREATE DATABASE IF NOT EXISTS AlkamelCsvs")
+            cursor.execute("USE AlkamelCsvs")
+            columnas="("
+            for cols in dataFrame.columns:
+                #print(cols)
+                col=cols.split(";")
+                for columna in col:
+                    if(columna!=""):
+                        columna=columna.replace(" ","")
+                        columnas+=columna + " " + "STRING" + ","
+            columnas=columnas.replace(";", ",")
+            columnas+=")"
+            columnas=(columnas.replace(",)", ")").replace("GROUP", "GRUPO")
+                      .replace("Group", "Grupo")).replace("ï»¿", "")
+            print(columnas)
             cursor.execute(f"""
-                           CREATE DATABASE IF NOT EXISTS AlkamelCsvs;
-                           CREATE TABLE IF NOT EXISTS {tableName} (
+                           CREATE TABLE IF NOT EXISTS {tableName} 
                                {columnas}
-                           )
                            ROW FORMAT DELIMITED
                            FIELDS TERMINATED BY ','
                            STORED AS TEXTFILE
+                           TBLPROPERTIES ('skip.header.line.count'='1')
                        """)
             tempFile = '/tmp/temp_hive_upload.csv'
             dataFrame.to_csv(tempFile, index=False, header=False)
