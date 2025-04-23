@@ -78,7 +78,8 @@ class Buscador:
                         for columna in col:
                             if(columna!=""):
                                 columna=columna.replace(" ","")
-                                columnas+=columna + " " + "STRING" + ","
+                                if (columnas.indexOf(", " +columna + " " + "STRING" + ",")==-1):
+                                    columnas+=columna + " " + "STRING" + ","
                     columnas=columnas.replace(";", ",")
                     columnas+=")"
                     columnas=((columnas.replace(",)", ")").replace("GROUP", "GRUPO")
