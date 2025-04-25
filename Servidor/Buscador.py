@@ -78,7 +78,7 @@ class Buscador:
                         for columna in col:
                             if(columna!=""):
                                 columna=columna.replace(" ","")
-                                if (columnas.indexOf(", " +columna + " " + "STRING" + ",")==-1):
+                                if (columnas.find("," +columna + " " + "STRING" + ",")==-1):
                                     columnas+=columna + " " + "STRING" + ","
                     columnas=columnas.replace(";", ",")
                     columnas+=")"
