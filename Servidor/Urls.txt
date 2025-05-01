@@ -1,4 +1,3 @@
-http://fiawec.alkamelsystems.com/
 https://imsa.results.alkamelcloud.com/
 http://f4spain-e3.alkamelsystems.com/
 http://elms.alkamelsystems.com/
