@@ -43,14 +43,55 @@ class Buscador:
             print("pasa por obtener csvs")
             self.descargarCsv(csv_link, season, event)
 
+    def getTableName (self, csvUrl, season, event):
+        finalUrl = csvUrl.split("/")
+        tableName = os.path.basename(urlparse(csvUrl).path) + "_barra_" + finalUrl[
+            6] + "_barra_" + season + "_barra_" + event + "_"
+        tableName = ((((tableName.replace("%20", "_").replace(" ", "_")
+                        .replace(".CSV", "").replace("-", "_"))
+                       .replace(".", "_")).replace("(", "").replace(")", "")
+                      .replace("+_", "")).replace("&", "").replace("", "")
+                     .replace(",", "_")).replace("+", "")
+        return tableName
+
+    def getColumns(self, dataFrame):
+        columnas="("
+        for cols in dataFrame.columns:
+            # print(cols)
+            col = cols.split(";")
+            for columna in col:
+                if (columna != ""):
+                    columna = columna.replace(" ", "")
+                    if (columnas.find("," + columna + " " + "STRING" + ",") == -1):
+                        columnas += columna + " " + "STRING" + ","
+        columnas = columnas.replace(";", ",")
+        columnas += ")"
+        columnas = ((columnas.replace(",)", ")").replace("GROUP", "GRUPO")
+                     .replace("Group", "Grupo")).replace("ï»¿", "").replace("*", "")
+                    .replace("-", "_"))
+        return columnas
+
+    def insertarPiloto (self, dataFrame, tableName):
+        drivers = dataFrame["driver"].dropna().unique()
+        for i, driver in enumerate(drivers):
+            driver = driver.replace("'", "''")  # escapa comillas simples
+            cursor.execute(f"SELECT id FROM pilotos WHERE nombre = '{driver}'")
+            result = cursor.fetchone()
+            if result is None:
+                new_id = i + 1  # ID manual (mejor si tienes una forma confiable de autoincremento)
+                cursor.execute(f"INSERT INTO pilotos VALUES ({new_id}, '{driver}')")
+                cursor.execute(f"INSERT INTO pilotos_url VALUES ({new_id}, '{tableName}')")
+            else:
+                piloto_id = result[0]
+                cursor.execute(f"""
+                               SELECT * FROM pilotos_url 
+                               WHERE piloto_id = {piloto_id} AND tabla = '{tableName}'
+                           """)
+                if cursor.fetchone() is None:
+                    cursor.execute(f"INSERT INTO pilotos_url VALUES ({piloto_id}, '{tableName}')")
+
     def descargarCsv(self, csvUrl, season, event):
-        finalUrl=csvUrl.split("/")
-        tableName = os.path.basename(urlparse(csvUrl).path) + "_barra_" + finalUrl[6] + "_barra_" + season + "_barra_" + event +"_"
-        tableName=((((tableName.replace("%20","_").replace(" ", "_")
-                   .replace(".CSV", "").replace("-","_"))
-                   .replace(".", "_")).replace("(","").replace(")","")
-                   .replace("+_", "")).replace("&", "").replace("", "")
-                   .replace(",","_")).replace("+","")
+        tableName = self.getTableName(csvUrl,season, event)
         print(tableName)
         try:
             response = requests.get(csvUrl, stream=True)
@@ -60,31 +101,32 @@ class Buscador:
             #print(dataFrame)
                 conn = hive.Connection(host=self.HIVE_HOST,
                                    port=self.HIVE_PORT
-                                   # auth='NOSASL'
                                    )
                 cursor = conn.cursor()
-                #cursor.execute("DROP DATABASE IF EXISTS AlkamelCsvs CASCADE")
-                ##print ("eliminada")
+                cursor.execute("DROP DATABASE IF EXISTS AlkamelCsvs CASCADE")
+                print ("eliminada")
                 cursor.execute("CREATE DATABASE IF NOT EXISTS AlkamelCsvs")
                 cursor.execute("USE AlkamelCsvs")
                 cursor.execute(f"SHOW TABLES LIKE '{tableName}'")
+                cursor.execute("""
+                          CREATE TABLE IF NOT EXISTS pilotos (
+                              id INT,
+                              nombre STRING
+                          )
+                          STORED AS TEXTFILE
+                      """)
+                cursor.execute("""
+                         CREATE TABLE IF NOT EXISTS pilotos_url (
+                             piloto_id INT,
+                             tabla STRING
+                         )
+                         STORED AS TEXTFILE
+                     """)
+
                 table_exists = cursor.fetchone() is not None
                 if not table_exists:
                     dataFrame = pd.read_csv(StringIO(text))
-                    columnas="("
-                    for cols in dataFrame.columns:
-                #print(cols)
-                        col=cols.split(";")
-                        for columna in col:
-                            if(columna!=""):
-                                columna=columna.replace(" ","")
-                                if (columnas.find("," +columna + " " + "STRING" + ",")==-1):
-                                    columnas+=columna + " " + "STRING" + ","
-                    columnas=columnas.replace(";", ",")
-                    columnas+=")"
-                    columnas=((columnas.replace(",)", ")").replace("GROUP", "GRUPO")
-                      .replace("Group", "Grupo")).replace("ï»¿", "").replace("*", "")
-                              .replace("-", "_"))
+                    columnas=self.getColumns(dataFrame)
                     print(columnas)
                     tempFile = '/tmp/temp_hive_upload.csv'
                     dataFrame.to_csv(tempFile, index=False, header=False)
@@ -105,5 +147,6 @@ class Buscador:
                            INTO TABLE {tableName}
                        """)
                         print("CSV cargado exitosamente en Hive.")
+                        insertarPiloto(dataFrame,tableName)
         except requests.RequestException as e:
             raise Exception(e)
