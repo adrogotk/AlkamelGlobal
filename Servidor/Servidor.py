@@ -15,7 +15,6 @@ EVENT_URL="&evvent="
 OUTPUT_FOLDER = "csv_files"
 
 
-# Crear carpeta para almacenar los CSV
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 
@@ -35,13 +34,11 @@ def obtenerTemporadas(url):
        soup = BeautifulSoup(response.text, "html.parser")
 
 
-       # Buscar la etiqueta <select name="season">
        select_tag = soup.find("select", {"name": "season"})
        if not select_tag:
            return []
 
 
-       # Extraer todas las opciones del select
        seasons = [option["value"] for option in select_tag.find_all("option") if "value" in option.attrs]
        return seasons
    except requests.RequestException as e:
@@ -57,24 +54,14 @@ def obtenerEventos(url):
        response.raise_for_status()
        soup = BeautifulSoup(response.text, "html.parser")
 
-
-       # Buscar la etiqueta <select name="season">
        select_tag = soup.find("select", {"name": "evvent"})
        if not select_tag:
            return []
 
-
-       # Extraer todas las opciones del select
-       seasons = [option["value"] for option in select_tag.find_all("option") if "value" in option.attrs]
-       return seasons
+       events = [option["value"] for option in select_tag.find_all("option") if "value" in option.attrs]
+       return events
    except requests.RequestException as e:
        raise Exception(e)
-
-
-
-
-
-
 
 
 # Función principal

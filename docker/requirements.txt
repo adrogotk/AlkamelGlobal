@@ -1,0 +1,4 @@
+pandas
+pyhive
+thrift
+requests

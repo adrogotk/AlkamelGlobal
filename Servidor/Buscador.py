@@ -70,9 +70,22 @@ class Buscador:
                      .replace("Group", "Grupo")).replace("ï»¿", "").replace("*", "")
                     .replace("-", "_"))
         return columnas
+    def getColumnasPiloto(self, dataFrame):
+        columns = dataFrame.columns
+        drivers=[]
+        if "DRIVER" in columns:
+            drivers = dataFrame["DRIVER"].dropna().unique()
+        elif "DRIVER_FIRSTNAME" in columns and "DRIVER_SECONDNAME" in columns:
+            drivers = (dataFrame["DRIVER_FIRSTNAME"].fillna('') + " " + dataFrame["DRIVER_SECONDNAME"].fillna(
+                '')).str.strip().dropna().unique()
+        elif "DRIVER_1" in columns:
+            driver_cols = [col for col in ["DRIVER_1", "DRIVER_2", "DRIVER_3", "DRIVER_4"] if col in columns]
+            drivers = pd.unique(dataFrame[driver_cols].values.ravel())
+            drivers = [d for d in drivers if pd.notna(d)]
+        return drivers
 
-    def insertarPiloto (self, dataFrame, tableName):
-        drivers = dataFrame["driver"].dropna().unique()
+    def insertarPiloto (self, cursor, dataFrame, tableName):
+        drivers = self.getColumnasPiloto(dataFrame)
         for i, driver in enumerate(drivers):
             driver = driver.replace("'", "''")  # escapa comillas simples
             cursor.execute(f"SELECT id FROM pilotos WHERE nombre = '{driver}'")
@@ -103,26 +116,25 @@ class Buscador:
                                    port=self.HIVE_PORT
                                    )
                 cursor = conn.cursor()
-                cursor.execute("DROP DATABASE IF EXISTS AlkamelCsvs CASCADE")
-                print ("eliminada")
+                #cursor.execute("DROP DATABASE IF EXISTS AlkamelCsvs CASCADE")
+                # ("eliminada")
                 cursor.execute("CREATE DATABASE IF NOT EXISTS AlkamelCsvs")
                 cursor.execute("USE AlkamelCsvs")
+                cursor.execute("""
+                                CREATE TABLE IF NOT EXISTS pilotos (
+                                    id INT,
+                                    nombre STRING
+                                )
+                                STORED AS TEXTFILE
+                            """)
+                cursor.execute("""
+                               CREATE TABLE IF NOT EXISTS pilotos_url (
+                                   piloto_id INT,
+                                   tabla STRING
+                               )
+                               STORED AS TEXTFILE
+                           """)
                 cursor.execute(f"SHOW TABLES LIKE '{tableName}'")
-                cursor.execute("""
-                          CREATE TABLE IF NOT EXISTS pilotos (
-                              id INT,
-                              nombre STRING
-                          )
-                          STORED AS TEXTFILE
-                      """)
-                cursor.execute("""
-                         CREATE TABLE IF NOT EXISTS pilotos_url (
-                             piloto_id INT,
-                             tabla STRING
-                         )
-                         STORED AS TEXTFILE
-                     """)
-
                 table_exists = cursor.fetchone() is not None
                 if not table_exists:
                     dataFrame = pd.read_csv(StringIO(text))
@@ -147,6 +159,6 @@ class Buscador:
                            INTO TABLE {tableName}
                        """)
                         print("CSV cargado exitosamente en Hive.")
-                        insertarPiloto(dataFrame,tableName)
+                        self.insertarPiloto(cursor, dataFrame,tableName)
         except requests.RequestException as e:
             raise Exception(e)
