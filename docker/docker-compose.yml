@@ -53,7 +53,7 @@ x-airflow-common:
   # build: .
   environment:
     &airflow-common-env
-    AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+    #AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
@@ -134,8 +134,8 @@ services:
       retries: 5
       start_period: 30s
     environment:
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
-      AIRFLOW__API_AUTH__JWT_SECRET: 29SFQ1yn7m7YyxyHclysKw==
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    #- AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
     restart: always
     depends_on:
       <<: *airflow-common-depends-on
@@ -226,6 +226,9 @@ services:
   airflow-init:
     <<: *airflow-common
     image: apache/airflow:3.0.0
+    build:
+      context: .
+      dockerfile: Dockerfile
     entrypoint: /bin/bash
     command: /init.sh
     # yamllint enable rule:line-length
@@ -264,7 +267,6 @@ services:
 
     command: >
       bash -c "
-        airflow auth create-user --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com || true;
         exec airflow api-server
       "
 
@@ -273,9 +275,11 @@ services:
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
       - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
       - AIRFLOW__CELERY__RESULT_BACKEND=db+postgresql://airflow:airflow@postgres/airflow
+      #- AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.default
       - AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
       - AIRFLOW__WEBSERVER__AUTHENTICATE=True
-      - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.www.auth.backends.basic_auth.BasicAuthBackend
+      - AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.www.auth.auth_user_pw
+      #- AIRFLOW__WEBSERVER__AUTH_BACKEND=airflow.www.auth.backends.basic_auth.BasicAuthBackend
 
     depends_on:
       <<: *airflow-common-depends-on

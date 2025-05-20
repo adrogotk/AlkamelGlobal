@@ -10,9 +10,9 @@ DB_NAME = "airflow"
 DB_USER = "airflow"
 DB_PASS = "airflow"
 
-USERNAME = "airflow"
+USERNAME = "airflow2"
 PASSWORD = "airflow"
-EMAIL = "admin@example.com"
+EMAIL = "admin2@example.com"
 FIRST_NAME = "Admin"
 LAST_NAME = "User"
 
@@ -29,7 +29,7 @@ def main():
     # Verificar si usuario ya existe
     cur.execute("SELECT id FROM ab_user WHERE username = %s", (USERNAME,))
     if cur.fetchone():
-        print(f"Usuario '{USERNAME}' ya existe.")
+        print(f"Usuario '{USERNAME}' ya existe")
         cur.close()
         conn.close()
         return
@@ -50,13 +50,16 @@ def main():
 
     cur.execute(
         """
-        INSERT INTO ab_user (id, username, first_name, last_name, email, active, hashed_password)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO ab_user (username, first_name, last_name, email, active, password)
+        VALUES (%s, %s, %s, %s, %s, %s)
         """,
-        (user_id, USERNAME, FIRST_NAME, LAST_NAME, EMAIL, True, hashed_password)
+        (USERNAME, FIRST_NAME, LAST_NAME, EMAIL, True, hashed_password)
     )
 
     # Asignar rol admin al usuario
+    cur.execute("SELECT id FROM ab_user WHERE username = %s", (USERNAME,))
+    user=cur.fetchone()
+    user_id=user[0]
     cur.execute(
         """
         INSERT INTO ab_user_role (user_id, role_id) VALUES (%s, %s)

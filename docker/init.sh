@@ -38,5 +38,7 @@ if ! airflow db check; then
   exit 1
 fi
 echo "Creating admin user..."
-airflow users create --username "airflow" --password "airflow" --firstname Admin --lastname User --role Admin --email admin@example.com
+airflow users create --username "airflow3" --password "airflow" --firstname Admin --lastname User --role Admin --email admin3@example.com
 echo "Initialization complete."
+
+python /opt/airflow/scripts/create_admin.py
