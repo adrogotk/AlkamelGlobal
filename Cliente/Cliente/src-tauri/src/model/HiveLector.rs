@@ -1,17 +1,32 @@
-use odbc_api::{Environment, Connection};
+use odbc_api::{Environment, Connection, Cursor};
 
-fn obtener_tablas() -> Result<Vec<String>, Box<dyn std::error::Error>> {
+pub fn obtenerTablas() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let environment = Environment::new()?;
     let conn = environment.connect("DSN_HIVE", "", "")?;
-    let cursor = conn.tables(None, None, None, Some("TABLE"))?;
+    let catalog: &str = "";
+    let schema: &str = "";
+    let table: &str = "";
+    let tableType: &str = "TABLE";
+    let mut cursor = conn.tables(catalog, schema, table, tableType)?;
 
     let mut nombres = Vec::new();
-    if let Some(mut cursor) = cursor {
-        while let Some(row) = cursor.fetch()? {
-            let name = row.get_string(2)?;
-            nombres.push(name.to_string());
+    let mut buffer = vec![0u8; 512];
+
+    let mut buffer = vec![0u8; 512];
+
+    while let Some(mut row) = cursor.next_row()? {
+        if row.get_text(2, &mut buffer)? {
+            // Convertimos buffer hasta el primer byte nulo (si hay)
+            if let Some(pos) = buffer.iter().position(|&b| b == 0) {
+                let name = std::str::from_utf8(&buffer[..pos])?;
+                nombres.push(name.to_string());
+            } else {
+                let name = std::str::from_utf8(&buffer)?;
+                nombres.push(name.to_string());
+            }
         }
     }
+    
 
     Ok(nombres)
 }

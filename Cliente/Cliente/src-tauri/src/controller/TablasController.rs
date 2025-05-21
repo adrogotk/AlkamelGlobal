@@ -2,6 +2,7 @@ use actix_web::{web, App, HttpServer, Responder, get};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::env;
+use crate::model::HiveLector::obtenerTablas;
 
 #[derive(Serialize)]
 struct TablasResponse {
@@ -13,14 +14,15 @@ struct TablasResponse {
 
 #[get("/api/seasons")]
 async fn getSeasons() -> impl Responder {
-    match obtener_tablas() {
+    match obtenerTablas() {
         Ok(tablas) => {
             let mut seasons = HashSet::new();
-            for partes in tablas {
+            for tabla in tablas {
+                let partes: Vec<&str> = tabla.split("_barra_").collect();
                 if partes.len() >= 4 {
-                    let season_parts: Vec<&str> = partes[2].split('_').collect();
-                    if season_parts.len() >= 2 {
-                        seasons.insert(season_parts[1].to_string());
+                    let seasonPartes: Vec<&str> = partes[2].split('_').collect();
+                    if seasonPartes.len() >= 2 {
+                        seasons.insert(seasonPartes[1].to_string());
                     }
                 }
             }
@@ -38,13 +40,14 @@ async fn getEvents(query: web::Query<std::collections::HashMap<String, String>>)
         return web::Json(vec!["season requerida".to_string()]);
     };
 
-    match obtener_tablas() {
+    match obtenerTablas() {
         Ok(tablas) => {
             let mut events = HashSet::new();
-            for partes in tablas {
+            for tabla in tablas {
+                let partes: Vec<&str> = tabla.split("_barra_").collect();
                 if partes.len() >= 4 {
-                    let season_parts: Vec<&str> = partes[2].split('_').collect();
-                    if season_parts.len() >= 2 && season_parts[1] == season {
+                    let seasonPartes: Vec<&str> = partes[2].split('_').collect();
+                    if seasonPartes.len() >= 2 && seasonPartes[1] == season {
                         events.insert(partes[3].to_string());
                     }
                 }
@@ -63,13 +66,14 @@ async fn getCompetitions(query: web::Query<std::collections::HashMap<String, Str
         return web::Json(vec!["season y event requeridos".to_string()]);
     };
 
-    match obtener_tablas() {
+    match obtenerTablas() {
         Ok(tablas) => {
             let mut comps = HashSet::new();
-            for partes in tablas {
+            for tabla in tablas {
+                let partes: Vec<&str> = tabla.split("_barra_").collect();
                 if partes.len() >= 4 {
-                    let season_parts: Vec<&str> = partes[2].split('_').collect();
-                    if season_parts.len() >= 2 && season_parts[1] == season && partes[3] == event {
+                    let seasonPartes: Vec<&str> = partes[2].split('_').collect();
+                    if seasonPartes.len() >= 2 && seasonPartes[1] == season && partes[3] == event {
                         comps.insert(partes[1].to_string());
                     }
                 }
@@ -90,13 +94,14 @@ async fn getLinks(query: web::Query<std::collections::HashMap<String, String>>) 
         return web::Json(vec!["season, event y competition requeridos".to_string()]);
     };
 
-    match obtener_tablas() {
+    match obtenerTablas() {
         Ok(tablas) => {
             let mut links = HashSet::new();
-            for partes in tablas {
+            for tabla in tablas {
+                let partes: Vec<&str> = tabla.split("_barra_").collect();
                 if partes.len() >= 4 {
-                    let season_parts: Vec<&str> = partes[2].split('_').collect();
-                    if season_parts.len() >= 2 && season_parts[1] == season && partes[3] == event && partes[1] == competition {
+                    let seasonPartes: Vec<&str> = partes[2].split('_').collect();
+                    if seasonPartes.len() >= 2 && seasonPartes[1] == season && partes[3] == event && partes[1] == competition {
                         links.insert(partes[0].to_string());
                     }
                 }

@@ -13,7 +13,7 @@ with DAG(
         default_args=default_args,
         description='Ejecuta servidor.py semanalmente.',
         schedule_interval='@weekly',
-        start_date=datetime(2024, 1, 1),
+        start_date=datetime(2025, 5, 22),
         catchup=False,
         tags=['servidor'],
 ) as dag:

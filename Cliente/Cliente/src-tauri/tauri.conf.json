@@ -1,10 +1,10 @@
 {
-  "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-  "productName": "cliente",
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "AlkamelGlobal",
   "version": "0.1.0",
   "identifier": "com.tauri.dev",
   "build": {
-    "frontendDist": "../build",
+    "frontendDist": "./build",
     "devUrl": "http://localhost:5173",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "cliente",
+        "title": "AlkamelGlobal",
         "width": 800,
         "height": 600,
         "resizable": true,
