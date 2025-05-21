@@ -11,7 +11,7 @@ default_args = {
 with DAG(
         dag_id='ejecutar_servidor_semanal',
         default_args=default_args,
-        description='Ejecuta servidor.py semanalmente',
+        description='Ejecuta servidor.py semanalmente.',
         schedule_interval='@weekly',
         start_date=datetime(2024, 1, 1),
         catchup=False,
