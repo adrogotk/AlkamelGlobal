@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
+import { invoke } from "@tauri-apps/api/tauri";
 
 function App() {
     const [seasons, setSeasons] = useState([]);
@@ -10,32 +10,39 @@ function App() {
     const [html, setHtml] = useState("");
 
     useEffect(() => {
-        axios.get("http://localhost:8080/api/seasons").then((res) => setSeasons(res.data));
+        invoke("getSeasons")
+            .then(setSeasons)
+            .catch((err) => console.error("Error al obtener seasons:", err));
     }, []);
 
     useEffect(() => {
         if (selected.season) {
-            axios.get("http://localhost:8080/api/events", { params: { season: selected.season } })
-                .then((res) => setEvents(res.data));
+            invoke("getEvents", { season: selected.season })
+                .then(setEvents)
+                .catch((err) => console.error("Error al obtener events:", err));
         }
     }, [selected.season]);
 
     useEffect(() => {
         if (selected.season && selected.event) {
-            axios.get("http://localhost:8080/api/competitions", { params: { season: selected.season, event: selected.event } })
-                .then((res) => setCompetitions(res.data));
+            invoke("getCompetitions", {
+                season: selected.season,
+                event: selected.event
+            })
+                .then(setCompetitions)
+                .catch((err) => console.error("Error al obtener competitions:", err));
         }
     }, [selected.event]);
 
     useEffect(() => {
         if (selected.season && selected.event && selected.competition) {
-            axios.get("http://localhost:8080/api/links", {
-                params: {
-                    season: selected.season,
-                    event: selected.event,
-                    competition: selected.competition,
-                },
-            }).then((res) => setLinks(res.data));
+            invoke("getLinks", {
+                season: selected.season,
+                event: selected.event,
+                competition: selected.competition
+            })
+                .then(setLinks)
+                .catch((err) => console.error("Error al obtener links:", err));
         }
     }, [selected.competition]);
 
@@ -55,21 +62,30 @@ function App() {
     };
 
     const handleLinkClick = (link) => {
-        const nombre = `${link}_barra_${selected.competition}_barra_season_${selected.season}_barra_${selected.event}`;
-        axios.get(`http://localhost:8080/tabla/${nombre}`)
-            .then((res) => setHtml(res.data));
+        link=link.replace(/ /g, "_")
+        console.log(`${link}_barra_${selected.competition}_barra_${selected.season}_barra_${selected.event}`)
+        const nombre = `${link}_barra_${selected.competition}_barra_${selected.season}_barra_${selected.event}`;
+        invoke("verTabla", { nombre })
+            .then(setHtml)
+            .catch((err) => console.error("Error al obtener tabla HTML:", err));
     };
 
     return (
         <div id="root">
-            <div id="form_carrera">
+            <div id="formSesion">
                 <form>
                     <label htmlFor="season">Season:</label>
                     <select id="season" onChange={(e) => handleSelect("season", e.target.value)}>
                         <option value="">--</option>
-                        {seasons.map((s) => (
-                            <option key={s} value={s}>{s}</option>
-                        ))}
+                        {seasons.map((s) => {
+                            const yearCode = s.split("_");
+                            const year = yearCode.length > 1 ? yearCode[1] : s;
+                            return (
+                                <option key={s} value={s}>
+                                    {year}
+                                </option>
+                            );
+                        })}
                     </select><br />
 
                     <label htmlFor="event">Event:</label>
@@ -94,9 +110,10 @@ function App() {
             <div id="session">
                 <div id="documents">
                     {links.map((link) => (
-                        <a key={link} href="#" onClick={() => handleLinkClick(link)}>
+                      <p><a key={link} href="#" onClick={() => handleLinkClick(link)}>
                             {link}
-                        </a>
+                        </a>        </p>
+
                     ))}
                 </div>
                 <div id="results" dangerouslySetInnerHTML={{ __html: html }}></div>

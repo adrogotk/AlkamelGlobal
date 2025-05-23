@@ -16,11 +16,14 @@ use views::viewModels::TablaViewModel::verTabla;
 
 
 use tauri::{Builder};
-
 fn main() {
-  Builder::default()
+  tauri::Builder::default()
       .invoke_handler(tauri::generate_handler![
-            // Aquí pones funciones Rust que quieres llamar desde React
+            getSeasons,
+            getEvents,
+            getCompetitions,
+            getLinks,
+            verTabla,
         ])
       .run(tauri::generate_context!())
       .expect("error while running tauri application");

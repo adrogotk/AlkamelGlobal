@@ -12,22 +12,28 @@ rust-version = "1.77.2"
 
 [lib]
 name = "app_lib"
-path = "src/lib.rs"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
-tauri-build = { version = "2.2.0", features = [] }
+tauri-build = { version = "1.0.0", features = [] }
 
 [profile.dev]
-lto = true
+lto = false
+codegen-units = 6
+opt-level = 0
+incremental = false
+
+[profile.release]
+lto = false
+codegen-units = 1
+incremental = false
 
 
 [dependencies]
 serde_json = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 log = "0.4"
-tauri = { version = "2.5.0", features = [] }
-tauri-plugin-log = "2.0.0-rc"
+tauri = { version = "1.0.0", features = [] }
 actix-web = "4"
 odbc-api = "0.40"
 tokio = { version = "1", features = ["full"] }
