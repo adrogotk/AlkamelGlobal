@@ -2,3 +2,4 @@ pandas
 pyhive
 thrift
 requests
+thrift_sasl

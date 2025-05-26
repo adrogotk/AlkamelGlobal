@@ -111,8 +111,7 @@ function App() {
                 <div id="documents">
                     {links.map((link) => (
                       <p><a key={link} href="#" onClick={() => handleLinkClick(link)}>
-                            {link}
-                        </a>        </p>
+                    {link}  </a></p>
 
                     ))}
                 </div>

@@ -37,7 +37,7 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
     let env = odbc_api::Environment::new()?;
     let conn = env.connect_with_connection_string(CONNECTION_STRING)?;
     let query = format!("SELECT * FROM `{}`", tabla);
-    let mut html = String::from("<table border=\"1\">");
+    let mut html = String::from("<table id='datos' border=\"1\">");
 
     if let Some(mut cursor) = conn.execute(&query, ())? {
         // Obtener nombres reales de columnas
@@ -50,8 +50,9 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
         // Cabecera HTML
         html.push_str("<tr>");
         for i in 1..=cols {
-            let col_name = cursor.col_name(i.try_into()?)?;
-            html.push_str(&format!("<th>{}</th>", col_name));
+            let colNameHive = cursor.col_name(i.try_into()?)?;
+            let colName=colNameHive.replace(tabla,"").replace(".", "");
+            html.push_str(&format!("<th>{}</th>", colName));
         }
         html.push_str("</tr>");
 
@@ -61,14 +62,19 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
 
         while let Some(batch) = rowSetCursor.fetch()? {
             let numRows = batch.num_rows();
+            let numCols = batch.num_cols();
             for rowIdx in 0..numRows {
                 html.push_str("<tr>");
-                for colIdx in 0..cols {
-                    let valStr = match batch.at(rowIdx, colIdx) {
+                for colIdx in 0..numCols {
+                    let valStr = match batch.at(colIdx, rowIdx) {
                         Some(bytes) => String::from_utf8_lossy(bytes).into_owned(),
                         None => "NULL".to_string(),
                     };
-                    html.push_str(&format!("<td>{}</td>", valStr));
+                    let celdas=valStr.split(";");
+                    for celdaHive in celdas{
+                        let celda=celdaHive.replace("_", " ");
+                        html.push_str(&format!("<td>{}</td>", celda));
+                    }
                 }
                 html.push_str("</tr>");
             }

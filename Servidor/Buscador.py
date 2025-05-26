@@ -1,10 +1,8 @@
 import pandas as pd
 from pyhive import hive
 from io import StringIO
-import thrift
 import os
 import requests
-import self
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, urlparse
 

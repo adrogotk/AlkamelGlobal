@@ -157,6 +157,11 @@ services:
       airflow-init:
         condition: service_completed_successfully
 
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ../Servidor:/opt/airflow/scripts/Servidor
+
   airflow-dag-processor:
     <<: *airflow-common
     command: dag-processor
@@ -179,7 +184,7 @@ services:
   airflow-worker:
     image: apache/airflow:3.0.0 # Or your desired version
     command: >
-      bash -c "airflow db migrate"
+      celery worker
     depends_on:
       postgres:
         condition: service_healthy
@@ -189,11 +194,16 @@ services:
         condition: service_healthy
       airflow-init:
         condition: service_completed_successfully
+
+    restart: always
+
     environment:
-      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
-      AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
-      AIRFLOW__CELERY__RESULT_BACKEND: redis://redis:6379/0
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
+      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
+      - AIRFLOW__CELERY__RESULT_BACKEND=redis://redis:6379/0
+      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      - AIRFLOW_CONN_SSH_HOST_3=ssh://debian:debian@h172.17.0.1
+
     healthcheck: #Re-enable only after fixing other issues
       test: ["CMD-SHELL", "celery --app airflow.providers.celery.executors.celery_executor.app inspect ping || exit 1"]
       interval: 30s
@@ -203,6 +213,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./logs:/opt/airflow/logs
+      - ../Servidor:/opt/airflow/scripts/Servidor
 
   airflow-triggerer:
     <<: *airflow-common
