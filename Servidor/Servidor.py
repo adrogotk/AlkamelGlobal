@@ -18,7 +18,7 @@ OUTPUT_FOLDER = "csv_files"
 os.makedirs(OUTPUT_FOLDER, exist_ok=True)
 
 
-
+# Obtiene las urls a scrapear procedentes del fichero Urls.txt
 def obtenerUrls():
     urlsFile=open(URLS_FILE, "r")
     urls=[]
@@ -26,7 +26,7 @@ def obtenerUrls():
         urls.append(line.strip())
     return urls
 
-
+# Obtiene las temporadas de una url base
 def obtenerTemporadas(url):
    try:
        response = requests.get(url, timeout=10)
@@ -34,12 +34,12 @@ def obtenerTemporadas(url):
        soup = BeautifulSoup(response.text, "html.parser")
 
 
-       select_tag = soup.find("select", {"name": "season"})
-       if not select_tag:
+       selectTag = soup.find("select", {"name": "season"})
+       if not selectTag:
            return []
 
 
-       seasons = [option["value"] for option in select_tag.find_all("option") if "value" in option.attrs]
+       seasons = [option["value"] for option in selectTag.find_all("option") if "value" in option.attrs]
        return seasons
    except requests.RequestException as e:
        raise Exception(e)
@@ -47,24 +47,24 @@ def obtenerTemporadas(url):
 
 
 
-# Obtener eventos de una temporada
+# Obtiene los eventos de una temporada
 def obtenerEventos(url):
    try:
        response = requests.get(url, timeout=10)
        response.raise_for_status()
        soup = BeautifulSoup(response.text, "html.parser")
 
-       select_tag = soup.find("select", {"name": "evvent"})
-       if not select_tag:
+       selectTag = soup.find("select", {"name": "evvent"})
+       if not selectTag:
            return []
 
-       events = [option["value"] for option in select_tag.find_all("option") if "value" in option.attrs]
+       events = [option["value"] for option in selectTag.find_all("option") if "value" in option.attrs]
        return events
    except requests.RequestException as e:
        raise Exception(e)
 
 
-# Función principal
+# Función principal. Por cada evento de una temporada de una url, obtiene los CSVs y los guarda en Hive
 def main():
    urls=obtenerUrls()
    for url in urls:
@@ -72,15 +72,15 @@ def main():
         if not seasons:
            continue
         for season in seasons:
-            url_season=url + SEASON_URL + season
-            events = obtenerEventos(url_season)
+            urlSeason=url + SEASON_URL + season
+            events = obtenerEventos(urlSeason)
             if not events:
                 continue
 
 
             for event in events:
-                url_event=url_season + EVENT_URL+event
-                buscador=Buscador(url_event)
+                urlEvent=urlSeason + EVENT_URL+event
+                buscador=Buscador(urlEvent)
                 buscador.obtenerCsvs(season, event)
 
 

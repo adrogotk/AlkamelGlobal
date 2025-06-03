@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 
 default_args = {
     'owner': 'airflow',
-    'retries': 999,
+    'retries': 1,
     'retry_delay': timedelta(minutes=5),
 }
 
@@ -18,8 +18,15 @@ with DAG(
         catchup=False,
         tags=['servidor'],
 ) as dag:
+    # Ejecuta el script de busqueda y descarga de CSVs (y de los pilotos contenidos en ellos) en Hive
     ejecutar_script = SSHOperator(
         task_id='ejecutar_servidor',
-        ssh_conn_id='ssh_host_3',
-        command='python3 /home/debian/AlkamelGlobal/Servidor/Servidor.py > /tmp/servidor_debug.log 2>&1',
+        ssh_conn_id='ssh_host_9',
+        command="""
+                cd /home/debian/AlkamelGlobal/Servidor && \
+                /home/debian/AlkamelGlobal/.venv3/bin/python Servidor.py
+                """,
+        get_pty=True,
+        cmd_timeout=86400,
     )
+    ejecutar_script

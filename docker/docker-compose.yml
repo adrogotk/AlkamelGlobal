@@ -49,16 +49,16 @@ x-airflow-common:
   # In order to add custom dependencies or upgrade provider distributions you can use your extended image.
   # Comment the image line, place your Dockerfile in the directory where you placed the docker-compose.yaml
   # and uncomment the "build" line below, Then run `docker-compose build` to build the images.
-  image: ${AIRFLOW_IMAGE_NAME:-apache/airflow:3.0.0}
-  # build: .
+  #image: apache/airflow:3.0.0-python3.9
+  build: .
   environment:
     &airflow-common-env
     #AIRFLOW__CORE__EXECUTOR: CeleryExecutor
     AIRFLOW__CORE__AUTH_MANAGER: airflow.providers.fab.auth_manager.fab_auth_manager.FabAuthManager
     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@postgres/airflow
-    AIRFLOW__CELERY__BROKER_URL: redis://:@redis:6379/0
-    AIRFLOW__CORE__FERNET_KEY: 'airflow fernet-key'
+    AIRFLOW__CELERY__BROKER_URL: redis://redis:6379/0
+    AIRFLOW__CORE__FERNET_KEY: bVni-AqXoaPij0nqxd0zht28k41Rm0nqrfGRYCHoyU0=
     AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
     AIRFLOW__CORE__LOAD_EXAMPLES: 'true'
     AIRFLOW__CORE__EXECUTION_API_SERVER_URL: 'http://airflow-apiserver:8080/execution/'
@@ -134,7 +134,8 @@ services:
       retries: 5
       start_period: 30s
     environment:
-    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+      <<: *airflow-common-env
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
     #- AIRFLOW__API__AUTH_BACKENDS=airflow.api.auth.backend.basic_auth
     restart: always
     depends_on:
@@ -173,16 +174,17 @@ services:
       start_period: 30s
     restart: always
     environment:
-      - AIRFLOW__LOGGING__BASE_LOG_FOLDER=/opt/airflow/logs
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__LOGGING__DAG_PROCESSOR_MANAGER_LOG_LOCATION=/opt/airflow/logs/dag_processor/dag_processor_manager.log
+      <<: *airflow-common-env
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__LOGGING__DAG_PROCESSOR_MANAGER_LOG_LOCATION: /opt/airflow/logs/dag_processor/dag_processor_manager.log
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
         condition: service_completed_successfully
 
   airflow-worker:
-    image: apache/airflow:3.0.0 # Or your desired version
+    <<: *airflow-common # Or your desired version
     command: >
       celery worker
     depends_on:
@@ -198,11 +200,9 @@ services:
     restart: always
 
     environment:
-      - AIRFLOW__CORE__EXECUTOR=CeleryExecutor
-      - AIRFLOW__CELERY__BROKER_URL=redis://redis:6379/0
-      - AIRFLOW__CELERY__RESULT_BACKEND=redis://redis:6379/0
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW_CONN_SSH_HOST_3=ssh://debian:debian@h172.17.0.1
+      <<: *airflow-common-env
+      AIRFLOW__CORE__EXECUTOR: CeleryExecutor
+      AIRFLOW_CONN_SSH_HOST_9: ssh://debian:debian@172.17.0.1:22
 
     healthcheck: #Re-enable only after fixing other issues
       test: ["CMD-SHELL", "celery --app airflow.providers.celery.executors.celery_executor.app inspect ping || exit 1"]
@@ -226,9 +226,10 @@ services:
       start_period: 30s
     restart: always
     environment:
-      - AIRFLOW__LOGGING__BASE_LOG_FOLDER=/opt/airflow/logs
-      - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
-      - AIRFLOW__LOGGING__DAG_PROCESSOR_MANAGER_LOG_LOCATION=/opt/airflow/logs/dag_processor/dag_processor_manager.log
+      <<: *airflow-common-env
+      AIRFLOW__LOGGING__BASE_LOG_FOLDER: /opt/airflow/logs
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__LOGGING__DAG_PROCESSOR_MANAGER_LOG_LOCATION: /opt/airflow/logs/dag_processor/dag_processor_manager.log
     depends_on:
       <<: *airflow-common-depends-on
       airflow-init:
@@ -300,9 +301,7 @@ services:
       - ./dags:/opt/airflow/dags
       - ./scripts:/opt/airflow/scripts
 
-  # You can enable flower by adding "--profile flower" option e.g. docker-compose --profile flower up
-  # or by explicitly targeted on the command line e.g. docker-compose up flower.
-  # See: https://docs.docker.com/compose/profiles/
+
   flower:
     <<: *airflow-common
     command: celery flower
@@ -331,6 +330,7 @@ services:
         - CLUSTER_NAME=test
       volumes:
         - namenode:/hadoop/dfs/name
+        - /host/path/shared:/shared
       env_file:
         - ./hadoop.env
 

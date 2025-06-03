@@ -46,6 +46,8 @@ function App() {
         }
     }, [selected.competition]);
 
+// Obtiene dinamicamente las temporadas, eventos o links según lo seleccionado
+// previamente y los valores que se hayan encontrado en los nombres de tablas de Hive
     const handleSelect = (field, value) => {
         setSelected((prev) => ({ ...prev, [field]: value }));
         if (field === "season") {
@@ -61,9 +63,10 @@ function App() {
         setHtml("");
     };
 
+// Obtiene la tabla en base a los valores seleccionados con respecto a la temporada,
+// evento, competición y link
     const handleLinkClick = (link) => {
         link=link.replace(/ /g, "_")
-        console.log(`${link}_barra_${selected.competition}_barra_${selected.season}_barra_${selected.event}`)
         const nombre = `${link}_barra_${selected.competition}_barra_${selected.season}_barra_${selected.event}`;
         invoke("verTabla", { nombre })
             .then(setHtml)

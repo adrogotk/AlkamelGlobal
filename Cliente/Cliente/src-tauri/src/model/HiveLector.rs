@@ -6,6 +6,11 @@ const TABLE_TYPE: &str="TABLE";
 const EMPTY_TABLE: &str="<tr><td colspan=\"100%\">No data returned or query did not produce results.</td></tr>";
 const MAX_ROWS_PER_BATCH: usize = 100;
 const MAX_BYTES_PER_CELL: usize = 1024;
+const APERTURA_TR:&str="<tr>";
+const CIERRE_TR:&str="</tr>";
+const CIERRE_TABLE:&str="</table>";
+
+// Obtiene todas las tablas contenidas en Hive
 pub fn obtenerTablas() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let env = odbc_api::Environment::new()?;
     let conn = env.connect_with_connection_string(CONNECTION_STRING)?;
@@ -33,6 +38,8 @@ pub fn obtenerTablas() -> Result<Vec<String>, Box<dyn std::error::Error>> {
 
     Ok(nombres)
 }
+
+// Obtiene el HTML completo con los datos de la tabla indicada
 pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Error>> {
     let env = odbc_api::Environment::new()?;
     let conn = env.connect_with_connection_string(CONNECTION_STRING)?;
@@ -40,23 +47,15 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
     let mut html = String::from("<table id='datos' border=\"1\">");
 
     if let Some(mut cursor) = conn.execute(&query, ())? {
-        // Obtener nombres reales de columnas
         let cols = cursor.num_result_cols()? as usize;
-        let mut columnNames = Vec::with_capacity(cols);
-        for i in 1..=cols as u16 {
-            columnNames.push(cursor.col_name(i));
-        }
 
-        // Cabecera HTML
-        html.push_str("<tr>");
+        html.push_str(APERTURA_TR);
         for i in 1..=cols {
             let colNameHive = cursor.col_name(i.try_into()?)?;
             let colName=colNameHive.replace(tabla,"").replace(".", "");
             html.push_str(&format!("<th>{}</th>", colName));
         }
-        html.push_str("</tr>");
-
-        // Cargar datos en buffer
+        html.push_str(CIERRE_TR);
         let mut buffers = TextRowSet::for_cursor(MAX_ROWS_PER_BATCH, &mut cursor, Some(MAX_BYTES_PER_CELL))?;
         let mut rowSetCursor = cursor.bind_buffer(&mut buffers)?;
 
@@ -64,7 +63,7 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
             let numRows = batch.num_rows();
             let numCols = batch.num_cols();
             for rowIdx in 0..numRows {
-                html.push_str("<tr>");
+                html.push_str(APERTURA_TR);
                 for colIdx in 0..numCols {
                     let valStr = match batch.at(colIdx, rowIdx) {
                         Some(bytes) => String::from_utf8_lossy(bytes).into_owned(),
@@ -76,13 +75,13 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
                         html.push_str(&format!("<td>{}</td>", celda));
                     }
                 }
-                html.push_str("</tr>");
+                html.push_str(CIERRE_TR);
             }
         }
     } else {
         html.push_str(EMPTY_TABLE);
     }
 
-    html.push_str("</table>");
+    html.push_str(CIERRE_TABLE);
     Ok(html)
 }

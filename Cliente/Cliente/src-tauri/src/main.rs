@@ -13,9 +13,10 @@ use controller::TablasController::{
   getLinks,
 };
 use views::viewModels::TablaViewModel::verTabla;
-
-
 use tauri::{Builder};
+
+const EXPECT_ERROR:&str="error while running tauri application";
+// Inicia la aplicación
 fn main() {
   tauri::Builder::default()
       .invoke_handler(tauri::generate_handler![
@@ -26,5 +27,5 @@ fn main() {
             verTabla,
         ])
       .run(tauri::generate_context!())
-      .expect("error while running tauri application");
+      .expect(EXPECT_ERROR);
 }
