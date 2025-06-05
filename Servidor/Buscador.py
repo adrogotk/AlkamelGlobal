@@ -165,7 +165,6 @@ class Buscador:
                                               ROW FORMAT DELIMITED
                                               FIELDS TERMINATED BY ','
                                               STORED AS TEXTFILE
-                                              TBLPROPERTIES ('skip.header.line.count'='1')
                                            """)
                     cursor.execute(f"SELECT COUNT(*) FROM {tableName}")
                     row_count = cursor.fetchone()[0]

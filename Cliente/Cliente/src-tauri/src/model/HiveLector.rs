@@ -53,7 +53,9 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
         for i in 1..=cols {
             let colNameHive = cursor.col_name(i.try_into()?)?;
             let colName=colNameHive.replace(tabla,"").replace(".", "");
-            html.push_str(&format!("<th>{}</th>", colName));
+            if !colName.is_empty() {
+                html.push_str(&format!("<th>{}</th>", colName));
+            }
         }
         html.push_str(CIERRE_TR);
         let mut buffers = TextRowSet::for_cursor(MAX_ROWS_PER_BATCH, &mut cursor, Some(MAX_BYTES_PER_CELL))?;
@@ -72,7 +74,9 @@ pub fn obtenerDatosTabla(tabla: &str) -> Result<String, Box<dyn std::error::Erro
                     let celdas=valStr.split(";");
                     for celdaHive in celdas{
                         let celda=celdaHive.replace("_", " ");
-                        html.push_str(&format!("<td>{}</td>", celda));
+                        if celda != "NULL"{
+                            html.push_str(&format!("<td>{}</td>", celda));
+                        }
                     }
                 }
                 html.push_str(CIERRE_TR);
