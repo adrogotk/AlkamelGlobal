@@ -18,7 +18,6 @@ with DAG(
         catchup=False,
         tags=['servidor'],
 ) as dag:
-    # Ejecuta el script de busqueda y descarga de CSVs (y de los pilotos contenidos en ellos) en Hive
     ejecutar_script = SSHOperator(
         task_id='ejecutar_servidor',
         ssh_conn_id='ssh_host_9',
